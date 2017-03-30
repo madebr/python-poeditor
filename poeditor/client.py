@@ -11,6 +11,7 @@
 import json
 from datetime import datetime
 import tempfile
+import time
 
 import requests
 
@@ -63,12 +64,14 @@ class POEditorAPI(object):
     # in seconds. Upload: No more than one request every 30 seconds
     MIN_UPLOAD_INTERVAL = 30
 
-    def __init__(self, api_token):
+    def __init__(self, api_token, block_upload=False):
         """
         All requests to the API must contain the parameter api_token.
         You'll find it in My Account > API Access in your POEditor account.
         """
         self.api_token = api_token
+        self.time_upload = time.time() - self.MIN_UPLOAD_INTERVAL
+        self.block_upload = block_upload
 
     def _run(self, action, headers=None, **kwargs):
         """
@@ -427,6 +430,12 @@ class POEditorAPI(object):
         fuzzy_trigger = '1' if fuzzy_trigger else '0'
         project_id = str(project_id)
 
+        while self.block_upload:
+            now = time.time()
+            if now > self.time_upload:
+                break
+            time.sleep(self.time_upload - now)
+
         data = self._run(
             action="upload",
             id=project_id,
@@ -439,6 +448,9 @@ class POEditorAPI(object):
             fuzzy_trigger=fuzzy_trigger,
             headers=None
         )
+
+        self.time_upload = time.time() + self.MIN_UPLOAD_INTERVAL
+
         return data['details']
 
     def update_terms(self, project_id, file_path=None, language_code=None,
