@@ -157,6 +157,15 @@ class POEditorAPI(object):
         )
         return self._project_formatter(data['item'])
 
+    def _project_language_formatter(self, data):
+        return {
+            'name': data['name'],
+            'code': data['code'],
+            # 'translations': int(data['translations']),  # only in v2
+            'percentage': float(data['percentage']),
+            'updated': datetime.strptime(data['updated'], '%Y-%m-%d %H:%M:%S') if data['updated'] else None,
+        }
+
     def list_project_languages(self, project_id):
         """
         Returns project languages and percentage of translation done for each.
@@ -165,7 +174,7 @@ class POEditorAPI(object):
             action="list_languages",
             id=project_id
         )
-        return data.get('list', [])
+        return [self._project_language_formatter(data) for data in data.get('list', [])]
 
     def add_language_to_project(self, project_id, language_code):
         """
